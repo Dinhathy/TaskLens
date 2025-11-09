@@ -107,6 +107,9 @@ class NemotronService:
         """
         logger.info("Stage 1: Starting LIVE visual identification with Nemotron Nano 2 VL")
 
+        # Sanitize user_goal to remove any newlines or problematic characters
+        user_goal = user_goal.replace('\n', ' ').replace('\r', ' ').strip()
+
         # Validate and clean base64 encoding
         image_format = "jpeg"  # Default to jpeg
         try:
@@ -124,17 +127,17 @@ class NemotronService:
             raise ValueError(f"Invalid base64 image data: {str(e)}")
 
         # Prepare the VLM request for NVIDIA API
-        # Build comprehensive prompt for task identification (single line to avoid URL encoding issues)
-        vlm_prompt = (
-            f"Identify what you see in this image for task assistance. "
-            f"User's Goal: {user_goal}. "
-            f"Provide identification in this format: [Item/Component], [Current State], [Key Observable Features]. "
-            f"Examples: Electronics: 'Raspberry Pi 4, unpowered, GPIO pins visible'; "
-            f"Plumbing: 'Sink drain pipe, PVC, disconnected at P-trap'; "
-            f"Automotive: 'Car engine, dipstick removed, oil cap visible'; "
-            f"Appliance: 'Washing machine, rear panel, water valves exposed'. "
-            f"Be concise and practical."
-        )
+        # Build comprehensive prompt for task identification - explicitly join to ensure no newlines
+        vlm_prompt = "".join([
+            "Identify what you see in this image for task assistance. ",
+            f"User's Goal: {user_goal}. ",
+            "Provide identification in this format: [Item/Component], [Current State], [Key Observable Features]. ",
+            "Examples: Electronics: 'Raspberry Pi 4, unpowered, GPIO pins visible'; ",
+            "Plumbing: 'Sink drain pipe, PVC, disconnected at P-trap'; ",
+            "Automotive: 'Car engine, dipstick removed, oil cap visible'; ",
+            "Appliance: 'Washing machine, rear panel, water valves exposed'. ",
+            "Be concise and practical."
+        ])
 
         payload = {
             "model": "nvidia/nemotron-nano-2-vlm",
@@ -300,6 +303,10 @@ Generate a complete, safe task plan."""
             ValueError: If response validation fails
         """
         logger.info("Stage 2: Generating wiring plan with Nemotron Nano 3")
+
+        # Sanitize all inputs to prevent newline issues
+        context_description = context_description.replace('\n', ' ').replace('\r', ' ').strip()
+        user_goal = user_goal.replace('\n', ' ').replace('\r', ' ').strip()
 
         system_prompt = f"""You are a universal task planning expert for TaskLens, skilled in electronics, plumbing, automotive, carpentry, appliance repair, and general handyman work.
 
