@@ -124,20 +124,17 @@ class NemotronService:
             raise ValueError(f"Invalid base64 image data: {str(e)}")
 
         # Prepare the VLM request for NVIDIA API
-        # Build comprehensive prompt for task identification
-        vlm_prompt = f"""Identify what you see in this image for task assistance.
-
-User's Goal: {user_goal}
-
-Provide identification in this format: [Item/Component], [Current State], [Key Observable Features]
-
-Examples:
-- Electronics: "Raspberry Pi 4, unpowered, GPIO pins visible"
-- Plumbing: "Sink drain pipe, PVC, disconnected at P-trap"
-- Automotive: "Car engine, dipstick removed, oil cap visible"
-- Appliance: "Washing machine, rear panel, water valves exposed"
-
-Be concise and practical."""
+        # Build comprehensive prompt for task identification (single line to avoid URL encoding issues)
+        vlm_prompt = (
+            f"Identify what you see in this image for task assistance. "
+            f"User's Goal: {user_goal}. "
+            f"Provide identification in this format: [Item/Component], [Current State], [Key Observable Features]. "
+            f"Examples: Electronics: 'Raspberry Pi 4, unpowered, GPIO pins visible'; "
+            f"Plumbing: 'Sink drain pipe, PVC, disconnected at P-trap'; "
+            f"Automotive: 'Car engine, dipstick removed, oil cap visible'; "
+            f"Appliance: 'Washing machine, rear panel, water valves exposed'. "
+            f"Be concise and practical."
+        )
 
         payload = {
             "model": "nvidia/nemotron-nano-2-vlm",
