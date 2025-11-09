@@ -124,13 +124,19 @@ class NemotronService:
             raise ValueError(f"Invalid base64 image data: {str(e)}")
 
         # Prepare the VLM request for NVIDIA API
-        system_prompt = """You are a hardware identification assistant for TaskLens.
-Analyze the image and identify the hardware component in ONE concise sentence.
+        system_prompt = """You are a universal task assistant for TaskLens.
+Analyze the image and identify what you see in ONE concise sentence, focusing on what's relevant to the user's goal.
 
-Format: "[Component Type], [Power State]. [Key Observable Features]"
-Example: "Raspberry Pi 4 Model B, Unpowered. GPIO header visible, 40-pin layout exposed."
+This could be:
+- Electronics/Hardware: "Raspberry Pi 4, unpowered, GPIO pins visible"
+- Plumbing: "Sink drain pipe, PVC, disconnected at P-trap joint"
+- Automotive: "Car engine bay, dipstick partially removed, oil cap visible"
+- Carpentry: "Wooden deck frame, 2x6 joists, missing support beam"
+- Appliance: "Washing machine rear panel, water inlet valves, drain hose connected"
 
-Be precise and brief."""
+Format: "[Item/Component], [Current State], [Key Observable Features relevant to the goal]"
+
+Be precise and practical."""
 
         payload = {
             "model": "nvidia/nemotron-nano-2-vlm",
@@ -144,7 +150,7 @@ Be precise and brief."""
                         },
                         {
                             "type": "text",
-                            "text": f"Identify this hardware component. User goal: {user_goal}"
+                            "text": f"Identify what you see in this image. User's goal: {user_goal}"
                         }
                     ]
                 }
@@ -297,23 +303,28 @@ Generate a complete, safe task plan."""
         """
         logger.info("Stage 2: Generating wiring plan with Nemotron Nano 3")
 
-        system_prompt = f"""detailed thinking on. You are a specialized Hardware Architect with expertise in safe electronics assembly.
+        system_prompt = f"""You are a universal task planning expert for TaskLens, skilled in electronics, plumbing, automotive, carpentry, appliance repair, and general handyman work.
 
-Based on the context: {context_description} and the user's goal: {user_goal}, generate a 5-step, chronologically optimal and safe wiring plan.
+Based on the context: {context_description} and the user's goal: {user_goal}, generate a 5-step, chronologically optimal and SAFE task plan.
 
 For each step, include:
-1. A SAFE pin to use (correct choice)
-2. An UNSAFE pin option (common mistake)
-3. X and Y coordinates (0.0 to 1.0) for visual overlay on the component image
-4. Detailed feedback explaining why the safe pin is correct
-5. Safety-focused error text explaining why the unsafe pin is wrong
+1. A SAFE action/location/component to use (correct choice)
+2. An UNSAFE alternative (common mistake to avoid)
+3. X and Y coordinates (0.0 to 1.0) for visual overlay - point to the relevant part in the image
+4. Detailed feedback explaining why the safe option is correct
+5. Safety-focused warning explaining why the unsafe option is dangerous/wrong
 
-CRITICAL: The output MUST strictly conform to the provided JSON Schema."""
+Examples across domains:
+- Electronics: "Connect to GPIO 14 (safe) vs GPIO 5V (unsafe - can fry component)"
+- Plumbing: "Tighten P-trap hand-tight (safe) vs Use pipe wrench (unsafe - can crack fitting)"
+- Automotive: "Check oil when engine cold (safe) vs Check when hot (unsafe - burn risk)"
+
+CRITICAL: Output MUST conform to the provided JSON Schema."""
 
         user_prompt = f"""Context: {context_description}
 User Goal: {user_goal}
 
-Generate a complete 5-step wiring plan with safety guidance."""
+Generate a complete 5-step task plan with safety guidance. Adapt the terminology to match the task domain (electronics, plumbing, automotive, etc.)."""
 
         payload = {
             "model": "nvidia/llama-3.1-nemotron-70b-instruct",
