@@ -48,13 +48,13 @@ def check_env_file():
     from dotenv import load_dotenv
     load_dotenv()
 
-    api_key = os.getenv('NVIDIA_API_KEY', '')
-    if not api_key or api_key == 'your_nvidia_api_key_here':
-        print("⚠️  NVIDIA_API_KEY not configured in .env")
-        print("   Add your API key from https://build.nvidia.com/")
+    api_key = os.getenv('OPENAI_API_KEY', '')
+    if not api_key or api_key == 'your_openai_api_key_here':
+        print("⚠️  OPENAI_API_KEY not configured in .env")
+        print("   Add your API key from https://platform.openai.com/api-keys")
         return False
 
-    print("✓ NVIDIA_API_KEY configured")
+    print("✓ OPENAI_API_KEY configured")
     return True
 
 
@@ -76,8 +76,8 @@ def check_imports():
         from core.config import get_settings
         print("✓ tasklens/backend/core/config.py imports successfully")
 
-        from services.nemotron import NemotronService
-        print("✓ tasklens/backend/services/nemotron.py imports successfully")
+        from services.openai_service import OpenAIService
+        print("✓ tasklens/backend/services/openai_service.py imports successfully")
 
         from api.main import app
         print("✓ tasklens/backend/api/main.py imports successfully")

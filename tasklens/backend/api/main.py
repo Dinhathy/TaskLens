@@ -16,7 +16,7 @@ import time
 from collections import defaultdict
 
 from core.schemas import TaskRequest, TaskPlan, WiringStep
-from services.nemotron import OpenAIService
+from services.openai_service import OpenAIService
 from core.config import get_settings
 
 # Configure logging
