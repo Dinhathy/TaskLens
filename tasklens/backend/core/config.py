@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     # App Configuration
     app_name: str = "TaskLens Aggregator Backend"
     app_version: str = "1.0.0"
-    debug_mode: bool = False
+    debug_mode: bool = True  # Enabled for debugging
 
 
 @lru_cache()

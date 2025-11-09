@@ -108,9 +108,15 @@ class NemotronService:
         logger.info("Stage 1: Starting LIVE visual identification with Nemotron Nano 2 VL")
 
         # Validate and clean base64 encoding
+        image_format = "jpeg"  # Default to jpeg
         try:
             # Strip data URL prefix if present (from frontend canvas.toDataURL)
             if image_base64.startswith('data:image'):
+                # Extract format from data URL (e.g., "data:image/jpeg;base64,...")
+                if 'jpeg' in image_base64.lower():
+                    image_format = "jpeg"
+                elif 'png' in image_base64.lower():
+                    image_format = "png"
                 image_base64 = image_base64.split(',')[1]
             # Test decode to validate format
             base64.b64decode(image_base64)
@@ -134,7 +140,7 @@ Be precise and brief."""
                     "content": [
                         {
                             "type": "image_url",
-                            "image_url": f"data:image/png;base64,{image_base64}"
+                            "image_url": f"data:image/{image_format};base64,{image_base64}"
                         },
                         {
                             "type": "text",
