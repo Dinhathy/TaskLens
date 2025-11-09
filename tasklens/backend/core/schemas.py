@@ -89,6 +89,7 @@ class WiringStep(BaseModel):
     y_coord: float = Field(..., description="Normalized Y-coordinate (0.0 to 1.0) for visual overlay", ge=0.0, le=1.0)
     feedback_text: str = Field(..., description="Detailed instruction for the correct choice")
     error_text: str = Field(..., description="Expert reasoning on why the unsafe pin is wrong")
+    diagram_url: str = Field(default="", description="Optional URL to relevant pinout diagram or technical guide")
 
 
 # JSON Schema for pin-focused wiring plan (NEW SCHEMA)
@@ -108,9 +109,10 @@ WIRING_PLAN_SCHEMA = {
                     "x_coord": {"type": "number", "description": "Normalized X-coordinate (0.0 to 1.0) for visual overlay."},
                     "y_coord": {"type": "number", "description": "Normalized Y-coordinate (0.0 to 1.0) for visual overlay."},
                     "feedback_text": {"type": "string", "description": "Detailed instruction for the correct choice."},
-                    "error_text": {"type": "string", "description": "Expert reasoning on why the unsafe pin is wrong."}
+                    "error_text": {"type": "string", "description": "Expert reasoning on why the unsafe pin is wrong."},
+                    "diagram_url": {"type": "string", "description": "Optional URL to relevant pinout diagram or technical guide. Empty string if not applicable."}
                 },
-                "required": ["step_id", "component", "safe_pin", "unsafe_pin_option", "x_coord", "y_coord", "feedback_text", "error_text"],
+                "required": ["step_id", "component", "safe_pin", "unsafe_pin_option", "x_coord", "y_coord", "feedback_text", "error_text", "diagram_url"],
                 "additionalProperties": False
             },
             "minItems": 5,

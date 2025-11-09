@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     vision_model: str = "gpt-4o"  # GPT-4 Omni with vision
     text_model: str = "gpt-4o-mini"  # Cheaper for text-only tasks
 
+    # Serper API Configuration (for web search tool)
+    serper_api_key: str = ""
+    serper_base_url: str = "https://google.serper.dev/search"
+
     # API Configuration
     api_timeout: int = 60
     max_retries: int = 3
