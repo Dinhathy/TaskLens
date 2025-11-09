@@ -20,11 +20,6 @@ class Settings(BaseSettings):
     vision_model: str = "gpt-4o"  # GPT-4 Omni with vision
     text_model: str = "gpt-4o-mini"  # Cheaper for text-only tasks
 
-    def model_post_init(self, __context):
-        """Sanitize API keys and URLs to remove any trailing whitespace/newlines."""
-        self.openai_base_url = self.openai_base_url.strip()
-        self.openai_api_key = self.openai_api_key.strip()
-
     # API Configuration
     api_timeout: int = 60
     max_retries: int = 3
