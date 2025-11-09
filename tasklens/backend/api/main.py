@@ -187,11 +187,11 @@ async def generate_plan(request: TaskRequest):
     logger.info(f"Received wiring plan request - Goal: {request.user_goal[:50]}...")
 
     # Validate API key
-    if not settings.nvidia_api_key:
-        logger.error("NVIDIA_API_KEY not configured")
+    if not settings.openai_api_key:
+        logger.error("OPENAI_API_KEY not configured")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="API key not configured. Please set NVIDIA_API_KEY environment variable."
+            detail="API key not configured. Please set OPENAI_API_KEY environment variable."
         )
 
     # Enhanced validation for image data
