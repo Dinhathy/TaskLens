@@ -36,8 +36,8 @@ async def lifespan(app: FastAPI):
     logger.info(f"Debug mode: {settings.debug_mode}")
 
     # Validate API key on startup
-    if not settings.nvidia_api_key:
-        logger.warning("NVIDIA_API_KEY not set - API calls will fail!")
+    if not settings.openai_api_key:
+        logger.warning("OPENAI_API_KEY not set - API calls will fail!")
 
     yield
 
