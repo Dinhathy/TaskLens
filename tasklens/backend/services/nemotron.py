@@ -173,6 +173,8 @@ class NemotronService:
                 logger.info(f"VLM prompt length: {len(vlm_prompt)}")
                 logger.info(f"Base64 length after cleanup: {len(image_base64)}")
                 logger.info(f"VLM prompt preview: {vlm_prompt[:100]}...")
+                logger.info(f"API key present: {bool(self.settings.nvidia_api_key)}")
+                logger.info(f"API key length: {len(self.settings.nvidia_api_key)}")
 
                 response = await client.post(
                     self.settings.nano2_vlm_url,
@@ -197,6 +199,12 @@ class NemotronService:
                 logger.error(f"Error details: {repr(e)}")
                 if hasattr(e, 'request'):
                     logger.error(f"Request URL: {e.request.url if e.request else 'N/A'}")
+                if hasattr(e, 'response'):
+                    logger.error(f"Response status: {e.response.status_code if e.response else 'N/A'}")
+                    try:
+                        logger.error(f"Response body: {e.response.text if e.response else 'N/A'}")
+                    except:
+                        pass
                 raise
 
     async def generate_plan(
