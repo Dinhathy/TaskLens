@@ -19,6 +19,12 @@ class Settings(BaseSettings):
     nano2_vlm_url: str = "https://ai.api.nvidia.com/v1/vlm/nvidia/nemotron-nano-2-vlm"
     nano3_llm_url: str = "https://ai.api.nvidia.com/v1/chat/completions"
 
+    def model_post_init(self, __context):
+        """Sanitize URLs to remove any trailing whitespace/newlines from environment variables."""
+        self.nano2_vlm_url = self.nano2_vlm_url.strip()
+        self.nano3_llm_url = self.nano3_llm_url.strip()
+        self.nvidia_api_key = self.nvidia_api_key.strip()
+
     # API Configuration
     api_timeout: int = 60
     max_retries: int = 3
