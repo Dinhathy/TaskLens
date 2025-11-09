@@ -80,14 +80,16 @@ class TaskPlan(BaseModel):
 
 
 class WiringStep(BaseModel):
-    """Individual wiring step with pin guidance."""
+    """Universal task step with physical labeling for any manual task."""
     step_id: int = Field(..., description="Sequential step number")
-    component: str = Field(default="", description="Component being wired")
-    safe_pin: str = Field(..., description="Logical pin name (e.g., 'GPIO 17', 'GND', '5V')")
-    unsafe_pin_option: str = Field(..., description="Common mistake pin name (e.g., '5V', 'GPIO 2')")
-    feedback_text: str = Field(..., description="Detailed instruction for the correct choice")
-    error_text: str = Field(..., description="Expert reasoning on why the unsafe pin is wrong")
-    diagram_url: str = Field(default="", description="URL to relevant pinout diagram (required for first step)")
+    component: str = Field(..., description="Component or part being worked on")
+    target_label: str = Field(..., description="Physical label of target (e.g., 'GPIO Pin 17', 'Bolt-M8', 'Water Inlet Valve')")
+    value_required: str = Field(..., description="Value/setting needed (e.g., '220 ohms', '8mm wrench', 'Clockwise 2 turns', 'Off')")
+    target_pin: str = Field(..., description="Correct connection/attachment point (e.g., 'Pin 17', 'Terminal Block 1', 'Hot Water Inlet')")
+    unsafe_option: str = Field(..., description="Common mistake to avoid (e.g., '5V Pin', 'M6 Bolt', 'Cold Water Inlet')")
+    feedback_text: str = Field(..., description="Patient, detailed explanation: WHY this action matters, then HOW to do it (8th-grade level)")
+    error_text: str = Field(..., description="Clear warning explaining why the unsafe option is dangerous/wrong")
+    diagram_url: str = Field(default="", description="URL to relevant diagram or guide (required for first step)")
 
 
 # JSON Schema for pin-focused wiring plan (NEW SCHEMA)
@@ -102,13 +104,15 @@ WIRING_PLAN_SCHEMA = {
                 "properties": {
                     "step_id": {"type": "integer"},
                     "component": {"type": "string"},
-                    "safe_pin": {"type": "string", "description": "Logical pin name (e.g., 'GPIO 17', 'GND', '5V')"},
-                    "unsafe_pin_option": {"type": "string", "description": "Common mistake pin name (e.g., '5V', 'GPIO 2')"},
-                    "feedback_text": {"type": "string", "description": "Detailed instruction for the correct choice."},
-                    "error_text": {"type": "string", "description": "Expert reasoning on why the unsafe pin is wrong."},
-                    "diagram_url": {"type": "string", "description": "URL to pinout diagram. REQUIRED for first step, optional for others."}
+                    "target_label": {"type": "string", "description": "Physical label of target (e.g., 'GPIO Pin 17', 'Bolt-M8', 'Water Inlet Valve')"},
+                    "value_required": {"type": "string", "description": "Value/setting needed (e.g., '220 ohms', '8mm wrench', 'Clockwise 2 turns')"},
+                    "target_pin": {"type": "string", "description": "Correct connection/attachment point"},
+                    "unsafe_option": {"type": "string", "description": "Common mistake to avoid"},
+                    "feedback_text": {"type": "string", "description": "Patient explanation of WHY and HOW (beginner-friendly)"},
+                    "error_text": {"type": "string", "description": "Clear warning about the unsafe option"},
+                    "diagram_url": {"type": "string", "description": "URL to relevant diagram. REQUIRED for first step."}
                 },
-                "required": ["step_id", "component", "safe_pin", "unsafe_pin_option", "feedback_text", "error_text", "diagram_url"],
+                "required": ["step_id", "component", "target_label", "value_required", "target_pin", "unsafe_option", "feedback_text", "error_text", "diagram_url"],
                 "additionalProperties": False
             },
             "minItems": 5,
