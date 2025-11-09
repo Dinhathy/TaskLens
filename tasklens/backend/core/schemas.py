@@ -92,22 +92,32 @@ class WiringStep(BaseModel):
 
 
 # JSON Schema for pin-focused wiring plan (NEW SCHEMA)
+# OpenAI requires root to be an object, so we wrap the array
 WIRING_PLAN_SCHEMA = {
-    "type": "array",
-    "items": {
-        "type": "object",
-        "properties": {
-            "step_id": {"type": "integer"},
-            "component": {"type": "string"},
-            "safe_pin": {"type": "string", "description": "Correct pin name, e.g., GPIO 17"},
-            "unsafe_pin_option": {"type": "string", "description": "Common mistake pin, e.g., 5V"},
-            "x_coord": {"type": "number", "description": "Normalized X-coordinate (0.0 to 1.0) for visual overlay."},
-            "y_coord": {"type": "number", "description": "Normalized Y-coordinate (0.0 to 1.0) for visual overlay."},
-            "feedback_text": {"type": "string", "description": "Detailed instruction for the correct choice."},
-            "error_text": {"type": "string", "description": "Expert reasoning on why the unsafe pin is wrong."}
-        },
-        "required": ["step_id", "safe_pin", "unsafe_pin_option", "x_coord", "y_coord", "feedback_text", "error_text"]
-    }
+    "type": "object",
+    "properties": {
+        "steps": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "step_id": {"type": "integer"},
+                    "component": {"type": "string"},
+                    "safe_pin": {"type": "string", "description": "Correct pin name, e.g., GPIO 17"},
+                    "unsafe_pin_option": {"type": "string", "description": "Common mistake pin, e.g., 5V"},
+                    "x_coord": {"type": "number", "description": "Normalized X-coordinate (0.0 to 1.0) for visual overlay."},
+                    "y_coord": {"type": "number", "description": "Normalized Y-coordinate (0.0 to 1.0) for visual overlay."},
+                    "feedback_text": {"type": "string", "description": "Detailed instruction for the correct choice."},
+                    "error_text": {"type": "string", "description": "Expert reasoning on why the unsafe pin is wrong."}
+                },
+                "required": ["step_id", "safe_pin", "unsafe_pin_option", "x_coord", "y_coord", "feedback_text", "error_text"]
+            },
+            "minItems": 5,
+            "maxItems": 5
+        }
+    },
+    "required": ["steps"],
+    "additionalProperties": False
 }
 
 

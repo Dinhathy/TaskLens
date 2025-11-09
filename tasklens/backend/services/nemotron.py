@@ -131,17 +131,21 @@ class NemotronService:
         except Exception as e:
             raise ValueError(f"Invalid base64 image data: {str(e)}")
 
-        # Prepare the VLM request for NVIDIA API
-        # Build comprehensive prompt for task identification - explicitly join to ensure no newlines
+        # Prepare the VLM request for OpenAI API
+        # Build comprehensive prompt for hardware/component identification
         vlm_prompt = "".join([
-            "Identify what you see in this image for task assistance. ",
-            f"User's Goal: {user_goal}. ",
-            "Provide identification in this format: [Item/Component], [Current State], [Key Observable Features]. ",
-            "Examples: Electronics: 'Raspberry Pi 4, unpowered, GPIO pins visible'; ",
-            "Plumbing: 'Sink drain pipe, PVC, disconnected at P-trap'; ",
-            "Automotive: 'Car engine, dipstick removed, oil cap visible'; ",
-            "Appliance: 'Washing machine, rear panel, water valves exposed'. ",
-            "Be concise and practical."
+            "You are analyzing an image of hardware, tools, or equipment for a technical assistance application. ",
+            "This is NOT a person - it is electronic components, machinery, appliances, or similar objects. ",
+            f"The user wants to: {user_goal}. ",
+            "Describe what hardware/components you see in the image. ",
+            "Focus on: type of device/component, current state (powered/unpowered/assembled/disassembled), ",
+            "and any visible technical features (ports, connectors, labels, etc.). ",
+            "Format your response as: [Component Type], [Current State], [Key Technical Features]. ",
+            "Examples: 'Raspberry Pi 4 board, unpowered, 40-pin GPIO header visible'; ",
+            "'Arduino Uno microcontroller, USB port visible, no power LED'; ",
+            "'Breadboard with LED and resistor, no power connected'; ",
+            "'PVC pipe fitting, P-trap disconnected, threaded connections visible'. ",
+            "Be technical and specific about the hardware you observe."
         ])
 
         payload = {
@@ -387,12 +391,13 @@ Generate a complete 5-step task plan with safety guidance. Adapt the terminology
                 )
 
                 # Extract the structured plan
-                content = result.get("choices", [{}])[0].get("message", {}).get("content", "[]")
+                content = result.get("choices", [{}])[0].get("message", {}).get("content", "{}")
                 logger.info(f"LLM Response received: {len(content)} characters")
 
-                # Parse JSON array
+                # Parse JSON object and extract steps array
                 import json
-                wiring_steps = json.loads(content)
+                response_obj = json.loads(content)
+                wiring_steps = response_obj.get("steps", [])
 
                 # Validate each step with Pydantic
                 validated_steps = [WiringStep(**step) for step in wiring_steps]
