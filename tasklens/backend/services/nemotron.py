@@ -124,19 +124,20 @@ class NemotronService:
             raise ValueError(f"Invalid base64 image data: {str(e)}")
 
         # Prepare the VLM request for NVIDIA API
-        system_prompt = """You are a universal task assistant for TaskLens.
-Analyze the image and identify what you see in ONE concise sentence, focusing on what's relevant to the user's goal.
+        # Build comprehensive prompt for task identification
+        vlm_prompt = f"""Identify what you see in this image for task assistance.
 
-This could be:
-- Electronics/Hardware: "Raspberry Pi 4, unpowered, GPIO pins visible"
-- Plumbing: "Sink drain pipe, PVC, disconnected at P-trap joint"
-- Automotive: "Car engine bay, dipstick partially removed, oil cap visible"
-- Carpentry: "Wooden deck frame, 2x6 joists, missing support beam"
-- Appliance: "Washing machine rear panel, water inlet valves, drain hose connected"
+User's Goal: {user_goal}
 
-Format: "[Item/Component], [Current State], [Key Observable Features relevant to the goal]"
+Provide identification in this format: [Item/Component], [Current State], [Key Observable Features]
 
-Be precise and practical."""
+Examples:
+- Electronics: "Raspberry Pi 4, unpowered, GPIO pins visible"
+- Plumbing: "Sink drain pipe, PVC, disconnected at P-trap"
+- Automotive: "Car engine, dipstick removed, oil cap visible"
+- Appliance: "Washing machine, rear panel, water valves exposed"
+
+Be concise and practical."""
 
         payload = {
             "model": "nvidia/nemotron-nano-2-vlm",
@@ -150,7 +151,7 @@ Be precise and practical."""
                         },
                         {
                             "type": "text",
-                            "text": f"Identify what you see in this image. User's goal: {user_goal}"
+                            "text": vlm_prompt
                         }
                     ]
                 }
