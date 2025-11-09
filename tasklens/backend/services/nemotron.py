@@ -56,12 +56,12 @@ class NemotronService:
 
         # Prepare the VLM request for NVIDIA API
         system_prompt = """You are a hardware identification assistant for TaskLens.
-Analyze the image and identify the hardware component in a single descriptive sentence.
+Analyze the image and identify the hardware component in ONE concise sentence.
 
-Include: component type, current state, and observable features.
-Example: "Identified component: Raspberry Pi 4 Model B, powered OFF. Exposed pins: GPIO header visible."
+Format: "[Component Type], [Power State]. [Key Observable Features]"
+Example: "Raspberry Pi 4 Model B, Unpowered. GPIO header visible, 40-pin layout exposed."
 
-Be precise and technical."""
+Be precise and brief."""
 
         payload = {
             "model": "nvidia/vila",
@@ -228,7 +228,9 @@ Generate a complete, safe task plan."""
         """
         logger.info("Stage 2: Generating wiring plan with Nemotron Nano 3")
 
-        system_prompt = f"""Act as a specialized Hardware Architect. Based on the context: {context_description} and the user's goal: {user_goal}, generate a 5-step, chronologically optimal and safe wiring plan for the user.
+        system_prompt = f"""detailed thinking on. You are a specialized Hardware Architect with expertise in safe electronics assembly.
+
+Based on the context: {context_description} and the user's goal: {user_goal}, generate a 5-step, chronologically optimal and safe wiring plan.
 
 For each step, include:
 1. A SAFE pin to use (correct choice)

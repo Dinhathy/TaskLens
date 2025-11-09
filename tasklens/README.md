@@ -1,142 +1,120 @@
-# TaskLens - AI Hardware Architect
+# TaskLens - AI Hardware Assembly Guide
 
-Real-time, AI-powered hardware assembly guidance with visual overlays.
+**AI-powered hardware assembly guidance using NVIDIA Nemotron models.**
 
-## Project Structure
+TaskLens is a Progressive Web App that provides real-time, step-by-step wiring instructions for hardware assembly using computer vision and AI planning.
 
-```
-tasklens/
-├── backend/              # FastAPI Backend
-│   ├── api/             # API routes and endpoints
-│   │   └── main.py      # FastAPI application
-│   ├── core/            # Core functionality
-│   │   ├── config.py    # Configuration management
-│   │   └── schemas.py   # Pydantic models & JSON schemas
-│   ├── services/        # Business logic
-│   │   └── nemotron.py  # NVIDIA Nemotron orchestration
-│   ├── requirements.txt # Python dependencies
-│   └── .env            # Environment variables (create this)
-│
-├── frontend/            # React Frontend
-│   ├── src/            # Source code
-│   │   ├── pages/      # Page components
-│   │   ├── components/ # Reusable UI components
-│   │   └── hooks/      # Custom React hooks
-│   ├── public/         # Static assets
-│   └── package.json    # Node dependencies
-│
-├── docs/               # Documentation
-│   ├── README.md       # Detailed documentation
-│   ├── ARCHITECTURE.md # System architecture
-│   └── INTEGRATION.md  # Integration guide
-│
-└── scripts/            # Utility scripts
-    ├── setup.sh        # Unix/Mac setup script
-    ├── setup.bat       # Windows setup script
-    └── test_setup.py   # Environment validation
-```
+## 🚀 Live Demo
 
-## Quick Start
+- **Frontend**: https://tasklensutd.netlify.app/
+- **Backend**: https://tasklens-production.up.railway.app/
+
+## ✨ Features
+
+- 📷 **Real-time Camera Integration** - Point your camera at hardware components
+- 🤖 **NVIDIA Nemotron AI** - Dual-stage AI pipeline for visual identification and intelligent planning
+- 📱 **Progressive Web App** - Install on mobile devices for native-like experience
+- ⚡ **Safety-First Design** - Highlights safe vs unsafe pin connections
+- 🎯 **Step-by-Step Guidance** - 5-step wiring plans with visual overlays
+
+## 🏗️ Architecture
+
+### Two-Stage AI Pipeline
+
+1. **Visual Identification** - NVIDIA Nemotron Nano 2 VL identifies hardware components
+2. **Intelligent Planning** - NVIDIA Nemotron Nano 3 generates safe, chronological wiring instructions
+
+### Tech Stack
+
+**Frontend:**
+- React 18 + TypeScript
+- Vite
+- TailwindCSS + shadcn/ui
+- PWA with Service Workers
+
+**Backend:**
+- FastAPI (Python)
+- NVIDIA NIM APIs
+- Pydantic for validation
+- HTTPX for async requests
+
+## 🛠️ Local Development
 
 ### Prerequisites
-- Python 3.9+
-- Node.js 16+
-- NVIDIA API key ([Get one here](https://build.nvidia.com/))
 
-### 1. Backend Setup
+- Python 3.8+
+- Node.js 24+
+- NVIDIA API Key
+
+### Backend Setup
 
 ```bash
-# Navigate to backend
 cd tasklens/backend
-
-# Create virtual environment
 python -m venv venv
-
-# Activate virtual environment
-source venv/bin/activate  # Mac/Linux
-venv\Scripts\activate     # Windows
-
-# Install dependencies
+venv\Scripts\activate  # Windows
 pip install -r requirements.txt
 
-# Configure environment
-cp .env.example .env
-# Edit .env and add your NVIDIA_API_KEY
+# Add your NVIDIA API key to .env
+# NVIDIA_API_KEY=your_key_here
 
-# Run backend
-cd api
-uvicorn main:app --reload
+uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Backend will run at: http://localhost:8000
-
-### 2. Frontend Setup
+### Frontend Setup
 
 ```bash
-# Navigate to frontend
 cd tasklens/frontend
-
-# Install dependencies
 npm install
-
-# Run development server
 npm run dev
 ```
 
-Frontend will run at: http://localhost:8080
+Visit http://localhost:8080
 
-## Usage
+## 📦 Deployment
 
-1. Open http://localhost:8080 in your browser
-2. Click "Start Live Camera Feed"
+### Backend (Render.com)
+
+1. Push to GitHub
+2. Connect Render to your repo
+3. Set root directory: `tasklens/backend`
+4. Add environment variable: `NVIDIA_API_KEY`
+5. Deploy!
+
+### Frontend (Netlify)
+
+```bash
+cd tasklens/frontend
+npm run build
+netlify deploy --prod
+```
+
+## 🎮 Usage
+
+1. Open the app on your phone or computer
+2. Allow camera permissions
 3. Enter your goal (e.g., "Blink an LED")
-4. Point camera at hardware
-5. Click "Scan & Analyze Frame"
-6. Follow step-by-step instructions with visual overlays
+4. Point camera at your hardware
+5. Tap "Scan & Analyze"
+6. Follow the step-by-step wiring plan!
 
-## API Endpoints
+## 🔐 Environment Variables
 
-### Health Check
+**Backend (.env):**
 ```
-GET http://localhost:8000/health
-```
-
-### Generate Wiring Plan
-```
-POST http://localhost:8000/api/v1/plan/generate
-Content-Type: application/json
-
-{
-  "image_data": "base64_image_string",
-  "user_goal": "Blink an LED"
-}
+NVIDIA_API_KEY=your_nvidia_api_key
 ```
 
-## Technology Stack
+**Frontend (.env.production):**
+```
+VITE_API_BASE_URL=https://your-backend-url.com
+```
 
-**Backend:**
-- FastAPI - Async Python web framework
-- Pydantic - Data validation
-- HTTPX - Async HTTP client
-- NVIDIA Nemotron - AI models (Vila VLM + Nano 3 LLM)
+## 📄 License
 
-**Frontend:**
-- React 18 - UI framework
-- TypeScript - Type safety
-- Tailwind CSS - Styling
-- Vite - Build tool
-- Shadcn/ui - Component library
+MIT
 
-## Documentation
+## 🙏 Acknowledgments
 
-- [Full Documentation](docs/README.md)
-- [Architecture Details](docs/ARCHITECTURE.md)
-- [Integration Guide](docs/INTEGRATION.md)
-
-## License
-
-MIT License - Built for HackUTD
-
-## Support
-
-For issues or questions, see the [troubleshooting guide](docs/README.md#troubleshooting).
+- Built with NVIDIA NIM APIs
+- Powered by Nemotron models
+- UI components from shadcn/ui
