@@ -168,6 +168,12 @@ class NemotronService:
 
         async with httpx.AsyncClient(timeout=self.settings.api_timeout) as client:
             try:
+                # Debug logging
+                logger.info(f"VLM URL: {self.settings.nano2_vlm_url}")
+                logger.info(f"VLM prompt length: {len(vlm_prompt)}")
+                logger.info(f"Base64 length after cleanup: {len(image_base64)}")
+                logger.info(f"VLM prompt preview: {vlm_prompt[:100]}...")
+
                 response = await client.post(
                     self.settings.nano2_vlm_url,
                     json=payload,
@@ -187,6 +193,10 @@ class NemotronService:
 
             except httpx.HTTPError as e:
                 logger.error(f"VLM API error: {str(e)}")
+                logger.error(f"Error type: {type(e).__name__}")
+                logger.error(f"Error details: {repr(e)}")
+                if hasattr(e, 'request'):
+                    logger.error(f"Request URL: {e.request.url if e.request else 'N/A'}")
                 raise
 
     async def generate_plan(
