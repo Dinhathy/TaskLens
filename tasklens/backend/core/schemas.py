@@ -110,7 +110,7 @@ WIRING_PLAN_SCHEMA = {
                     "feedback_text": {"type": "string", "description": "Detailed instruction for the correct choice."},
                     "error_text": {"type": "string", "description": "Expert reasoning on why the unsafe pin is wrong."}
                 },
-                "required": ["step_id", "safe_pin", "unsafe_pin_option", "x_coord", "y_coord", "feedback_text", "error_text"],
+                "required": ["step_id", "component", "safe_pin", "unsafe_pin_option", "x_coord", "y_coord", "feedback_text", "error_text"],
                 "additionalProperties": False
             },
             "minItems": 5,

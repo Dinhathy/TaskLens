@@ -1,5 +1,5 @@
 """
-Service layer for orchestrating NVIDIA Nemotron model calls.
+Service layer for orchestrating OpenAI model calls.
 """
 import base64
 import logging
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 settings = get_settings()
 
 
-class NemotronService:
+class OpenAIService:
     """Service for orchestrating OpenAI GPT-4 Vision and text models."""
 
     def __init__(self):
@@ -92,9 +92,7 @@ class NemotronService:
         user_goal: str
     ) -> str:
         """
-        Stage 1: Visual Identification using Nemotron Nano 2 VL.
-
-        CURRENTLY SIMULATED: Returns hardcoded Raspberry Pi 4 identification.
+        Stage 1: Visual Identification using OpenAI GPT-4 Vision.
 
         Args:
             image_base64: Base64 encoded image string
@@ -106,7 +104,7 @@ class NemotronService:
         Raises:
             ValueError: If response parsing fails
         """
-        logger.info("Stage 1: Starting LIVE visual identification with OpenAI GPT-4 Vision")
+        logger.info("Stage 1: Starting visual identification with OpenAI GPT-4 Vision")
 
         # Sanitize user_goal to remove any newlines or problematic characters
         user_goal = user_goal.replace('\n', ' ').replace('\r', ' ').strip()
@@ -217,7 +215,7 @@ class NemotronService:
         user_goal: str
     ) -> Dict[str, Any]:
         """
-        Stage 2: Chronological Planning using Nemotron Nano 3.
+        Stage 2: Chronological Planning using OpenAI GPT-4o-mini.
 
         Args:
             component: Identified hardware component
@@ -231,7 +229,12 @@ class NemotronService:
             httpx.HTTPError: If API call fails
             ValueError: If response validation fails
         """
-        logger.info("Stage 2: Generating chronological plan with Nemotron Nano 3")
+        logger.info("Stage 2: Generating chronological plan with OpenAI GPT-4o-mini")
+
+        # Sanitize inputs
+        component = component.replace('\n', ' ').replace('\r', ' ').strip()
+        component_state = component_state.replace('\n', ' ').replace('\r', ' ').strip()
+        user_goal = user_goal.replace('\n', ' ').replace('\r', ' ').strip()
 
         system_prompt = f"""You are a Specialized Hardware Architect with expertise in {component}.
 
@@ -253,7 +256,7 @@ User Goal: {user_goal}
 Generate a complete, safe task plan."""
 
         payload = {
-            "model": "nvidia/nemotron-nano-3",
+            "model": self.settings.text_model,
             "messages": [
                 {
                     "role": "system",
@@ -265,7 +268,6 @@ Generate a complete, safe task plan."""
                 }
             ],
             "temperature": 0.3,
-            "top_p": 0.95,
             "max_tokens": 2000,
             "response_format": {
                 "type": "json_schema",
@@ -279,13 +281,13 @@ Generate a complete, safe task plan."""
 
         async with httpx.AsyncClient(timeout=self.settings.api_timeout) as client:
             try:
-                response = await client.post(
-                    self.settings.nano3_llm_url,
-                    json=payload,
-                    headers=self.headers
+                # Use retry mechanism
+                result = await self._make_api_call_with_retry(
+                    client=client,
+                    url=self.chat_url,
+                    payload=payload,
+                    operation_name="Task Plan Generation"
                 )
-                response.raise_for_status()
-                result = response.json()
 
                 # Extract the structured plan
                 content = result.get("choices", [{}])[0].get("message", {}).get("content", "{}")
@@ -314,7 +316,7 @@ Generate a complete, safe task plan."""
         user_goal: str
     ) -> List[Dict[str, Any]]:
         """
-        Stage 2: Generate 5-step wiring plan with pin guidance using Nemotron Nano 3.
+        Stage 2: Generate 5-step wiring plan with pin guidance using OpenAI GPT-4o-mini.
 
         Args:
             context_description: VLM output describing the hardware

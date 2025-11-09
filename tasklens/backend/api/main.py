@@ -1,6 +1,6 @@
 """
 TaskLens Aggregator Backend - FastAPI Application
-High-performance asynchronous backend for orchestrating NVIDIA Nemotron models.
+High-performance asynchronous backend for orchestrating OpenAI models.
 """
 import logging
 from contextlib import asynccontextmanager
@@ -16,7 +16,7 @@ import time
 from collections import defaultdict
 
 from core.schemas import TaskRequest, TaskPlan, WiringStep
-from services.nemotron import NemotronService
+from services.nemotron import OpenAIService
 from core.config import get_settings
 
 # Configure logging
@@ -115,7 +115,7 @@ class RequestMiddleware(BaseHTTPMiddleware):
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
-    description="Secure aggregator backend for TaskLens - orchestrating NVIDIA Nemotron models",
+    description="Secure aggregator backend for TaskLens - orchestrating OpenAI models",
     lifespan=lifespan
 )
 
@@ -133,7 +133,7 @@ app.add_middleware(
 )
 
 # Initialize service
-nemotron_service = NemotronService()
+openai_service = OpenAIService()
 
 
 @app.get("/")
@@ -165,15 +165,15 @@ async def health_check():
     response_model=List[WiringStep],
     status_code=status.HTTP_200_OK,
     summary="Generate Wiring Plan",
-    description="Orchestrates Nemotron Nano 2 VL (simulated) and Nano 3 to generate a structured wiring plan with pin guidance"
+    description="Orchestrates OpenAI GPT-4 Vision and GPT-4o-mini to generate a structured wiring plan with pin guidance"
 )
 async def generate_plan(request: TaskRequest):
     """
     Primary endpoint: Generate a complete wiring plan from an image and user goal.
 
     This endpoint orchestrates two stages:
-    1. Nemotron Nano 2 VL - Visual identification of hardware component (SIMULATED)
-    2. Nemotron Nano 3 - 5-step wiring plan with safe/unsafe pin guidance
+    1. OpenAI GPT-4 Vision - Visual identification of hardware component
+    2. OpenAI GPT-4o-mini - 5-step wiring plan with safe/unsafe pin guidance
 
     Args:
         request: TaskRequest containing base64 image and user goal
@@ -231,7 +231,7 @@ async def generate_plan(request: TaskRequest):
 
     try:
         # Orchestrate the full pipeline
-        wiring_plan = await nemotron_service.orchestrate_full_pipeline(
+        wiring_plan = await openai_service.orchestrate_full_pipeline(
             image_base64=request.image_data,
             user_goal=request.user_goal
         )
@@ -240,17 +240,17 @@ async def generate_plan(request: TaskRequest):
         return wiring_plan
 
     except httpx.HTTPStatusError as e:
-        logger.error(f"NVIDIA API error: {e.response.status_code} - {e.response.text}")
+        logger.error(f"OpenAI API error: {e.response.status_code} - {e.response.text}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"NVIDIA API error: {e.response.status_code}. Please check your API key and endpoint configuration."
+            detail=f"OpenAI API error: {e.response.status_code}. Please check your API key and endpoint configuration."
         )
 
     except httpx.TimeoutException:
-        logger.error("Request to NVIDIA API timed out")
+        logger.error("Request to OpenAI API timed out")
         raise HTTPException(
             status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-            detail="Request to AI model timed out. Please try again."
+            detail="Request to OpenAI API timed out. Please try again."
         )
 
     except ValueError as e:
