@@ -14,16 +14,16 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
-    # NVIDIA API Configuration
-    nvidia_api_key: str = ""
-    nano2_vlm_url: str = "https://integrate.api.nvidia.com/v1/chat/completions"
-    nano3_llm_url: str = "https://integrate.api.nvidia.com/v1/chat/completions"
+    # OpenAI API Configuration (switched from NVIDIA for reliability)
+    openai_api_key: str = ""
+    openai_base_url: str = "https://api.openai.com/v1"
+    vision_model: str = "gpt-4o"  # GPT-4 Omni with vision
+    text_model: str = "gpt-4o-mini"  # Cheaper for text-only tasks
 
     def model_post_init(self, __context):
-        """Sanitize URLs to remove any trailing whitespace/newlines from environment variables."""
-        self.nano2_vlm_url = self.nano2_vlm_url.strip()
-        self.nano3_llm_url = self.nano3_llm_url.strip()
-        self.nvidia_api_key = self.nvidia_api_key.strip()
+        """Sanitize API keys and URLs to remove any trailing whitespace/newlines."""
+        self.openai_base_url = self.openai_base_url.strip()
+        self.openai_api_key = self.openai_api_key.strip()
 
     # API Configuration
     api_timeout: int = 60

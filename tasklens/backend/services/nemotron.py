@@ -14,14 +14,15 @@ settings = get_settings()
 
 
 class NemotronService:
-    """Service for orchestrating Nemotron Nano 2 VL and Nano 3 models."""
+    """Service for orchestrating OpenAI GPT-4 Vision and text models."""
 
     def __init__(self):
         self.settings = get_settings()
         self.headers = {
-            "Authorization": f"Bearer {self.settings.nvidia_api_key}",
+            "Authorization": f"Bearer {self.settings.openai_api_key}",
             "Content-Type": "application/json"
         }
+        self.chat_url = f"{self.settings.openai_base_url}/chat/completions"
     
     async def _make_api_call_with_retry(
         self,
@@ -105,7 +106,7 @@ class NemotronService:
         Raises:
             ValueError: If response parsing fails
         """
-        logger.info("Stage 1: Starting LIVE visual identification with Nemotron Nano 2 VL")
+        logger.info("Stage 1: Starting LIVE visual identification with OpenAI GPT-4 Vision")
 
         # Sanitize user_goal to remove any newlines or problematic characters
         user_goal = user_goal.replace('\n', ' ').replace('\r', ' ').strip()
@@ -144,40 +145,38 @@ class NemotronService:
         ])
 
         payload = {
-            "model": "nvidia/nemotron-nano-12b-v2-vl",
+            "model": self.settings.vision_model,
             "messages": [
                 {
                     "role": "user",
                     "content": [
                         {
-                            "type": "image_url",
-                            "image_url": f"data:image/{image_format};base64,{image_base64}"
-                        },
-                        {
                             "type": "text",
                             "text": vlm_prompt
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/{image_format};base64,{image_base64}"
+                            }
                         }
                     ]
                 }
             ],
-            "max_tokens": 200,
-            "temperature": 0.2,
-            "top_p": 0.7,
-            "stream": False
+            "max_tokens": 300
         }
 
         async with httpx.AsyncClient(timeout=self.settings.api_timeout) as client:
             try:
                 # Debug logging
-                logger.info(f"VLM URL: {self.settings.nano2_vlm_url}")
-                logger.info(f"VLM prompt length: {len(vlm_prompt)}")
-                logger.info(f"Base64 length after cleanup: {len(image_base64)}")
-                logger.info(f"VLM prompt preview: {vlm_prompt[:100]}...")
-                logger.info(f"API key present: {bool(self.settings.nvidia_api_key)}")
-                logger.info(f"API key length: {len(self.settings.nvidia_api_key)}")
+                logger.info(f"OpenAI Vision URL: {self.chat_url}")
+                logger.info(f"Model: {self.settings.vision_model}")
+                logger.info(f"Prompt length: {len(vlm_prompt)}")
+                logger.info(f"Base64 length: {len(image_base64)}")
+                logger.info(f"API key present: {bool(self.settings.openai_api_key)}")
 
                 response = await client.post(
-                    self.settings.nano2_vlm_url,
+                    self.chat_url,
                     json=payload,
                     headers=self.headers
                 )
@@ -324,7 +323,7 @@ Generate a complete, safe task plan."""
             httpx.HTTPError: If API call fails
             ValueError: If response validation fails
         """
-        logger.info("Stage 2: Generating wiring plan with Nemotron Nano 3")
+        logger.info("Stage 2: Generating wiring plan with OpenAI GPT-4o-mini")
 
         # Sanitize all inputs to prevent newline issues
         context_description = context_description.replace('\n', ' ').replace('\r', ' ').strip()
@@ -354,7 +353,7 @@ User Goal: {user_goal}
 Generate a complete 5-step task plan with safety guidance. Adapt the terminology to match the task domain (electronics, plumbing, automotive, etc.)."""
 
         payload = {
-            "model": "nvidia/llama-3.1-nemotron-70b-instruct",
+            "model": self.settings.text_model,
             "messages": [
                 {
                     "role": "system",
@@ -366,7 +365,6 @@ Generate a complete 5-step task plan with safety guidance. Adapt the terminology
                 }
             ],
             "temperature": 0.3,
-            "top_p": 0.95,
             "max_tokens": 2000,
             "response_format": {
                 "type": "json_schema",
@@ -383,7 +381,7 @@ Generate a complete 5-step task plan with safety guidance. Adapt the terminology
                 # Use retry mechanism
                 result = await self._make_api_call_with_retry(
                     client=client,
-                    url=self.settings.nano3_llm_url,
+                    url=self.chat_url,
                     payload=payload,
                     operation_name="Wiring Plan Generation"
                 )
