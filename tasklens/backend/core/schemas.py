@@ -83,13 +83,11 @@ class WiringStep(BaseModel):
     """Individual wiring step with pin guidance."""
     step_id: int = Field(..., description="Sequential step number")
     component: str = Field(default="", description="Component being wired")
-    safe_pin: str = Field(..., description="Correct pin name, e.g., GPIO 17")
-    unsafe_pin_option: str = Field(..., description="Common mistake pin, e.g., 5V")
-    x_coord: float = Field(..., description="Normalized X-coordinate (0.0 to 1.0) for visual overlay", ge=0.0, le=1.0)
-    y_coord: float = Field(..., description="Normalized Y-coordinate (0.0 to 1.0) for visual overlay", ge=0.0, le=1.0)
+    safe_pin: str = Field(..., description="Logical pin name (e.g., 'GPIO 17', 'GND', '5V')")
+    unsafe_pin_option: str = Field(..., description="Common mistake pin name (e.g., '5V', 'GPIO 2')")
     feedback_text: str = Field(..., description="Detailed instruction for the correct choice")
     error_text: str = Field(..., description="Expert reasoning on why the unsafe pin is wrong")
-    diagram_url: str = Field(default="", description="Optional URL to relevant pinout diagram or technical guide")
+    diagram_url: str = Field(default="", description="URL to relevant pinout diagram (required for first step)")
 
 
 # JSON Schema for pin-focused wiring plan (NEW SCHEMA)
@@ -104,15 +102,13 @@ WIRING_PLAN_SCHEMA = {
                 "properties": {
                     "step_id": {"type": "integer"},
                     "component": {"type": "string"},
-                    "safe_pin": {"type": "string", "description": "Correct pin name, e.g., GPIO 17"},
-                    "unsafe_pin_option": {"type": "string", "description": "Common mistake pin, e.g., 5V"},
-                    "x_coord": {"type": "number", "description": "Normalized X-coordinate (0.0 to 1.0) for visual overlay."},
-                    "y_coord": {"type": "number", "description": "Normalized Y-coordinate (0.0 to 1.0) for visual overlay."},
+                    "safe_pin": {"type": "string", "description": "Logical pin name (e.g., 'GPIO 17', 'GND', '5V')"},
+                    "unsafe_pin_option": {"type": "string", "description": "Common mistake pin name (e.g., '5V', 'GPIO 2')"},
                     "feedback_text": {"type": "string", "description": "Detailed instruction for the correct choice."},
                     "error_text": {"type": "string", "description": "Expert reasoning on why the unsafe pin is wrong."},
-                    "diagram_url": {"type": "string", "description": "Optional URL to relevant pinout diagram or technical guide. Empty string if not applicable."}
+                    "diagram_url": {"type": "string", "description": "URL to pinout diagram. REQUIRED for first step, optional for others."}
                 },
-                "required": ["step_id", "component", "safe_pin", "unsafe_pin_option", "x_coord", "y_coord", "feedback_text", "error_text", "diagram_url"],
+                "required": ["step_id", "component", "safe_pin", "unsafe_pin_option", "feedback_text", "error_text", "diagram_url"],
                 "additionalProperties": False
             },
             "minItems": 5,

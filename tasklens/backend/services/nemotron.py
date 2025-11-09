@@ -387,57 +387,72 @@ Generate a complete, safe task plan."""
                 logger.error(f"Plan generation failed: {str(e)}")
                 raise ValueError(f"Failed to generate valid plan: {str(e)}")
 
-    async def generate_wiring_plan(
+    async def generate_wiring_plan_combined(
         self,
-        context_description: str,
+        image_base64: str,
         user_goal: str
     ) -> List[Dict[str, Any]]:
         """
-        Stage 2: Generate 5-step wiring plan with pin guidance using OpenAI GPT-4o-mini
+        Combined single-call approach: Analyze image and generate wiring plan using GPT-4o
         with autonomous web search capability via function calling.
+        
+        This combines vision analysis and planning into ONE fast API call for minimal latency.
 
         Args:
-            context_description: VLM output describing the hardware
+            image_base64: Base64 encoded image string
             user_goal: User's stated goal
 
         Returns:
-            List of wiring steps with safe/unsafe pins and coordinates
+            List of wiring steps with logical pin names and diagram URLs
 
         Raises:
             httpx.HTTPError: If API call fails
             ValueError: If response validation fails
         """
-        logger.info("Stage 2: Generating wiring plan with OpenAI GPT-4o-mini (with web search tool)")
+        logger.info("Starting combined vision + planning with GPT-4o (single call)")
 
-        # Sanitize all inputs to prevent newline issues
-        context_description = context_description.replace('\n', ' ').replace('\r', ' ').strip()
+        # Sanitize user_goal
         user_goal = user_goal.replace('\n', ' ').replace('\r', ' ').strip()
 
-        system_prompt = f"""You are a universal task planning expert for TaskLens, skilled in electronics, plumbing, automotive, carpentry, appliance repair, and general handyman work.
+        # Validate and prepare image
+        image_format = "jpeg"
+        try:
+            if image_base64.startswith('data:image'):
+                if 'jpeg' in image_base64.lower():
+                    image_format = "jpeg"
+                elif 'png' in image_base64.lower():
+                    image_format = "png"
+                image_base64 = image_base64.split(',')[1]
+            
+            image_base64 = image_base64.replace('\n', '').replace('\r', '').replace(' ', '').replace('\t', '')
+            base64.b64decode(image_base64)
+        except Exception as e:
+            raise ValueError(f"Invalid base64 image data: {str(e)}")
 
-Based on the context: {context_description} and the user's goal: {user_goal}, generate a 5-step, chronologically optimal and SAFE task plan.
+        system_prompt = """You are the TaskLens Hardware Architect. You analyze hardware images and generate safe, optimal wiring plans.
 
-For each step, include:
-1. A SAFE action/location/component to use (correct choice)
-2. An UNSAFE alternative (common mistake to avoid)
-3. X and Y coordinates (0.0 to 1.0) for visual overlay - point to the relevant part in the image
-4. Detailed feedback explaining why the safe option is correct
-5. Safety-focused warning explaining why the unsafe option is dangerous/wrong
-6. A diagram_url field - IMPORTANT: When your plan mentions a specific technical term (like "GPIO 17", "40-pin header", "JST connector", specific component models, or port types), you MUST use the web_search_tool to find a relevant pinout diagram or technical guide. After the tool returns a URL, populate the diagram_url field with that URL. If the search returns no results or an error, use an empty string.
+CRITICAL INSTRUCTIONS:
+1. Analyze the attached image to identify the hardware component
+2. Generate a 5-step chronologically optimal wiring plan for the user's goal
+3. For each step, use LOGICAL PIN NAMES (e.g., 'GPIO 17', 'GND', '5V', '3V3') in safe_pin and unsafe_pin_option fields
+4. Use the web_search_tool to find the best pinout diagram URL and include it in diagram_url for the FIRST step
+5. Provide clear feedback_text explaining why the safe pin is correct
+6. Provide error_text explaining why the unsafe pin is dangerous
 
-Examples across domains:
-- Electronics: "Connect to GPIO 14 (safe) vs GPIO 5V (unsafe - can fry component)" - Search for "Raspberry Pi GPIO pinout diagram"
-- Plumbing: "Tighten P-trap hand-tight (safe) vs Use pipe wrench (unsafe - can crack fitting)"
-- Automotive: "Check oil when engine cold (safe) vs Check when hot (unsafe - burn risk)"
+PIN NAME EXAMPLES:
+- Raspberry Pi: 'GPIO 17', 'GPIO 27', 'GND', '5V', '3V3'
+- Arduino: 'D13', 'D12', 'GND', '5V', 'A0'
+- Generic: Use the exact pin label visible on the board
 
-TOOL USAGE RULE: Only search for technical hardware terms that users might not know (pin names, connector types, specific ports). Do NOT search for generic terms like "LED" or "wire". Search queries should be specific like "[Component Model] [Pin/Port Name] pinout diagram".
+SEARCH STRATEGY:
+- For the first step, search for "[Component Model] GPIO Pinout Diagram" or "[Component Model] Pin Layout"
+- Example: "Raspberry Pi 4 GPIO Header Pinout Diagram"
 
-CRITICAL: Output MUST conform to the provided JSON Schema. Use the web_search_tool proactively when needed."""
+Output only the final JSON array conforming to the schema."""
 
-        user_prompt = f"""Context: {context_description}
-User Goal: {user_goal}
+        user_prompt = f"""Analyze this hardware image and generate a safe 5-step wiring plan for: {user_goal}
 
-Generate a complete 5-step task plan with safety guidance. Use the web_search_tool when mentioning specific technical pins or connectors to populate diagram_url fields."""
+Use logical pin names and search for a pinout diagram URL for the first step."""
 
         # Define the function/tool for OpenAI
         tools = [
@@ -468,13 +483,25 @@ Generate a complete 5-step task plan with safety guidance. Use the web_search_to
             },
             {
                 "role": "user",
-                "content": user_prompt
+                "content": [
+                    {
+                        "type": "text",
+                        "text": user_prompt
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/{image_format};base64,{image_base64}"
+                        }
+                    }
+                ]
             }
         ]
 
         async with httpx.AsyncClient(timeout=self.settings.api_timeout) as client:
             try:
                 # Initial call with tools enabled (no structured output yet - can't mix both)
+                # Using GPT-4o (vision_model) for combined vision + planning
                 max_iterations = 10  # Prevent infinite loops
                 iteration = 0
                 
@@ -483,7 +510,7 @@ Generate a complete 5-step task plan with safety guidance. Use the web_search_to
                     logger.info(f"API call iteration {iteration}")
                     
                     payload = {
-                        "model": self.settings.text_model,
+                        "model": self.settings.vision_model,  # Use GPT-4o for vision + reasoning
                         "messages": messages,
                         "temperature": 0.3,
                         "max_tokens": 2000,
@@ -514,9 +541,9 @@ Generate a complete 5-step task plan with safety guidance. Use the web_search_to
                             "content": "Now format your complete plan as JSON conforming to the schema."
                         })
                         
-                        # Final call with structured output
+                        # Final call with structured output using GPT-4o
                         final_payload = {
-                            "model": self.settings.text_model,
+                            "model": self.settings.vision_model,  # Continue using GPT-4o
                             "messages": messages,
                             "temperature": 0.3,
                             "max_tokens": 2000,
@@ -592,7 +619,7 @@ Generate a complete 5-step task plan with safety guidance. Use the web_search_to
         user_goal: str
     ) -> List[Dict[str, Any]]:
         """
-        Orchestrate the complete two-stage pipeline for wiring plan generation.
+        Orchestrate the complete pipeline - now using SINGLE combined call for speed.
 
         Args:
             image_base64: Base64 encoded image
@@ -604,13 +631,10 @@ Generate a complete 5-step task plan with safety guidance. Use the web_search_to
         Raises:
             Exception: If any stage fails
         """
-        logger.info("Starting TaskLens wiring plan pipeline orchestration")
+        logger.info("Starting TaskLens COMBINED vision + planning pipeline (single GPT-4o call)")
 
-        # Stage 1: Visual Identification (SIMULATED)
-        context_description = await self.identify_component(image_base64, user_goal)
-
-        # Stage 2: Wiring Plan Generation
-        wiring_plan = await self.generate_wiring_plan(context_description, user_goal)
+        # Combined approach: Vision analysis + planning in ONE call
+        wiring_plan = await self.generate_wiring_plan_combined(image_base64, user_goal)
 
         logger.info("Pipeline orchestration completed successfully")
         return wiring_plan
