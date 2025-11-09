@@ -81,7 +81,7 @@ class TaskPlan(BaseModel):
 
 class WiringStep(BaseModel):
     """Universal task step with physical labeling for any manual task."""
-    step_id: int = Field(..., description="Sequential step number")
+    step_id: int = Field(..., description="Sequential step number (1-6)")
     component: str = Field(..., description="Component or part being worked on")
     target_label: str = Field(..., description="Physical label of target (e.g., 'GPIO Pin 17', 'Bolt-M8', 'Water Inlet Valve')")
     value_required: str = Field(..., description="Value/setting needed (e.g., '220 ohms', '8mm wrench', 'Clockwise 2 turns', 'Off')")
@@ -90,6 +90,8 @@ class WiringStep(BaseModel):
     feedback_text: str = Field(..., description="Patient, detailed explanation: WHY this action matters, then HOW to do it (8th-grade level)")
     error_text: str = Field(..., description="Clear warning explaining why the unsafe option is dangerous/wrong")
     diagram_url: str = Field(default="", description="URL to relevant diagram or guide (required for first step)")
+    requires_photo_verification: bool = Field(default=True, description="Whether this step requires photo verification before proceeding")
+    verification_criteria: str = Field(..., description="What the user should show in verification photo (e.g., 'LED inserted into breadboard', 'Wire connected to Pin 17')")
 
 
 # JSON Schema for pin-focused wiring plan (NEW SCHEMA)
@@ -110,13 +112,15 @@ WIRING_PLAN_SCHEMA = {
                     "unsafe_option": {"type": "string", "description": "Common mistake to avoid"},
                     "feedback_text": {"type": "string", "description": "Patient explanation of WHY and HOW (beginner-friendly)"},
                     "error_text": {"type": "string", "description": "Clear warning about the unsafe option"},
-                    "diagram_url": {"type": "string", "description": "URL to relevant diagram. REQUIRED for first step."}
+                    "diagram_url": {"type": "string", "description": "URL to relevant diagram. REQUIRED for first step."},
+                    "requires_photo_verification": {"type": "boolean", "description": "Whether user must submit photo before next step"},
+                    "verification_criteria": {"type": "string", "description": "What to show in verification photo"}
                 },
-                "required": ["step_id", "component", "target_label", "value_required", "target_pin", "unsafe_option", "feedback_text", "error_text", "diagram_url"],
+                "required": ["step_id", "component", "target_label", "value_required", "target_pin", "unsafe_option", "feedback_text", "error_text", "diagram_url", "requires_photo_verification", "verification_criteria"],
                 "additionalProperties": False
             },
-            "minItems": 5,
-            "maxItems": 5
+            "minItems": 6,
+            "maxItems": 6
         }
     },
     "required": ["steps"],
