@@ -3,6 +3,7 @@ Service layer for orchestrating NVIDIA Nemotron model calls.
 """
 import base64
 import logging
+import asyncio
 from typing import Dict, Any, Tuple, List
 import httpx
 from core.schemas import PLAN_SCHEMA, WIRING_PLAN_SCHEMA, TaskPlan, WiringStep
@@ -21,6 +22,68 @@ class NemotronService:
             "Authorization": f"Bearer {self.settings.nvidia_api_key}",
             "Content-Type": "application/json"
         }
+    
+    async def _make_api_call_with_retry(
+        self,
+        client: httpx.AsyncClient,
+        url: str,
+        payload: Dict[str, Any],
+        operation_name: str
+    ) -> Dict[str, Any]:
+        """
+        Make API call with exponential backoff retry logic.
+        
+        Args:
+            client: HTTP client instance
+            url: API endpoint URL
+            payload: Request payload
+            operation_name: Name of operation for logging
+            
+        Returns:
+            API response as dictionary
+            
+        Raises:
+            httpx.HTTPError: If all retries fail
+        """
+        max_retries = self.settings.max_retries
+        base_delay = 1  # seconds
+        
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"{operation_name} - Attempt {attempt + 1}/{max_retries}")
+                response = await client.post(url, json=payload, headers=self.headers)
+                response.raise_for_status()
+                return response.json()
+                
+            except httpx.HTTPStatusError as e:
+                # Don't retry on client errors (4xx)
+                if 400 <= e.response.status_code < 500:
+                    logger.error(f"{operation_name} - Client error: {e.response.status_code}")
+                    raise
+                
+                # Retry on server errors (5xx)
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)  # Exponential backoff
+                    logger.warning(
+                        f"{operation_name} - Server error {e.response.status_code}. "
+                        f"Retrying in {delay}s... (Attempt {attempt + 1}/{max_retries})"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"{operation_name} - All retries exhausted")
+                    raise
+                    
+            except httpx.TimeoutException:
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    logger.warning(
+                        f"{operation_name} - Timeout. "
+                        f"Retrying in {delay}s... (Attempt {attempt + 1}/{max_retries})"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    logger.error(f"{operation_name} - All retries exhausted after timeout")
+                    raise
 
     async def identify_component(
         self,
@@ -64,7 +127,7 @@ Example: "Raspberry Pi 4 Model B, Unpowered. GPIO header visible, 40-pin layout 
 Be precise and brief."""
 
         payload = {
-            "model": "nvidia/vila",
+            "model": "nvidia/nemotron-nano-2-vlm",
             "messages": [
                 {
                     "role": "user",
@@ -273,13 +336,13 @@ Generate a complete 5-step wiring plan with safety guidance."""
 
         async with httpx.AsyncClient(timeout=self.settings.api_timeout) as client:
             try:
-                response = await client.post(
-                    self.settings.nano3_llm_url,
-                    json=payload,
-                    headers=self.headers
+                # Use retry mechanism
+                result = await self._make_api_call_with_retry(
+                    client=client,
+                    url=self.settings.nano3_llm_url,
+                    payload=payload,
+                    operation_name="Wiring Plan Generation"
                 )
-                response.raise_for_status()
-                result = response.json()
 
                 # Extract the structured plan
                 content = result.get("choices", [{}])[0].get("message", {}).get("content", "[]")

@@ -61,21 +61,32 @@ def check_env_file():
 def check_imports():
     """Check all project modules can be imported"""
     try:
-        from schemas import TaskRequest, TaskPlan, PLAN_SCHEMA
-        print("✓ schemas.py imports successfully")
+        # Import from tasklens.backend (actual backend location)
+        import sys
+        import os
+        
+        # Add backend to path
+        backend_path = os.path.join(os.path.dirname(__file__), 'tasklens', 'backend')
+        if backend_path not in sys.path:
+            sys.path.insert(0, backend_path)
+        
+        from core.schemas import TaskRequest, TaskPlan, PLAN_SCHEMA
+        print("✓ tasklens/backend/core/schemas.py imports successfully")
 
-        from config import get_settings
-        print("✓ config.py imports successfully")
+        from core.config import get_settings
+        print("✓ tasklens/backend/core/config.py imports successfully")
 
-        from services import NemotronService
-        print("✓ services.py imports successfully")
+        from services.nemotron import NemotronService
+        print("✓ tasklens/backend/services/nemotron.py imports successfully")
 
-        from main import app
-        print("✓ main.py imports successfully")
+        from api.main import app
+        print("✓ tasklens/backend/api/main.py imports successfully")
 
         return True
     except Exception as e:
         print(f"❌ Import error: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 

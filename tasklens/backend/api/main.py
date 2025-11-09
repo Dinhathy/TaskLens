@@ -5,10 +5,15 @@ High-performance asynchronous backend for orchestrating NVIDIA Nemotron models.
 import logging
 from contextlib import asynccontextmanager
 from typing import List
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 import httpx
+import base64
+import uuid
+import time
+from collections import defaultdict
 
 from core.schemas import TaskRequest, TaskPlan, WiringStep
 from services.nemotron import NemotronService
@@ -39,6 +44,73 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down TaskLens backend")
 
 
+# Simple in-memory rate limiter
+class RateLimiter:
+    """Simple token bucket rate limiter."""
+    def __init__(self, requests_per_minute: int = 30):
+        self.requests_per_minute = requests_per_minute
+        self.requests = defaultdict(list)
+    
+    def is_allowed(self, client_ip: str) -> bool:
+        """Check if request is allowed based on rate limit."""
+        now = time.time()
+        minute_ago = now - 60
+        
+        # Clean old requests
+        self.requests[client_ip] = [
+            req_time for req_time in self.requests[client_ip]
+            if req_time > minute_ago
+        ]
+        
+        # Check if under limit
+        if len(self.requests[client_ip]) < self.requests_per_minute:
+            self.requests[client_ip].append(now)
+            return True
+        return False
+
+
+# Middleware for request ID tracking, size limits, and rate limiting
+class RequestMiddleware(BaseHTTPMiddleware):
+    """Middleware for request tracking, validation, and rate limiting."""
+    
+    MAX_REQUEST_SIZE = 10 * 1024 * 1024  # 10MB limit
+    
+    def __init__(self, app):
+        super().__init__(app)
+        self.rate_limiter = RateLimiter(requests_per_minute=30)
+    
+    async def dispatch(self, request: Request, call_next):
+        # Generate unique request ID
+        request_id = str(uuid.uuid4())
+        request.state.request_id = request_id
+        
+        # Rate limiting (skip for health checks)
+        if not request.url.path.endswith('/health'):
+            client_ip = request.client.host if request.client else "unknown"
+            if not self.rate_limiter.is_allowed(client_ip):
+                logger.warning(f"Rate limit exceeded for {client_ip}")
+                return JSONResponse(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    content={
+                        "detail": "Rate limit exceeded. Maximum 30 requests per minute allowed."
+                    },
+                    headers={"X-Request-ID": request_id}
+                )
+        
+        # Check content length
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > self.MAX_REQUEST_SIZE:
+            return JSONResponse(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                content={"detail": "Request payload too large. Maximum size is 10MB."}
+            )
+        
+        # Add request ID to response headers
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title=settings.app_name,
@@ -47,6 +119,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Add middleware in correct order (request tracking first, then CORS)
+app.add_middleware(RequestMiddleware)
+
 # Configure CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -54,7 +129,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*", "X-Request-ID"]
 )
 
 # Initialize service
@@ -77,14 +152,11 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    api_key_configured = bool(settings.nvidia_api_key)
-
+    """Health check endpoint - minimal information disclosure."""
+    # Only return basic health status, no sensitive configuration details
     return {
         "status": "healthy",
-        "api_key_configured": api_key_configured,
-        "nano2_vlm_url": settings.nano2_vlm_url,
-        "nano3_llm_url": settings.nano3_llm_url
+        "version": settings.app_version
     }
 
 
@@ -122,12 +194,39 @@ async def generate_plan(request: TaskRequest):
             detail="API key not configured. Please set NVIDIA_API_KEY environment variable."
         )
 
-    # Validate image data
+    # Enhanced validation for image data
     if not request.image_data or len(request.image_data) < 100:
         logger.error("Invalid or missing image data")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or missing base64 image data"
+        )
+    
+    # Validate base64 encoding and reasonable size limits
+    try:
+        # Remove data URL prefix if present
+        image_data = request.image_data
+        if image_data.startswith('data:image'):
+            image_data = image_data.split(',')[1]
+        
+        # Validate base64 format
+        decoded = base64.b64decode(image_data, validate=True)
+        
+        # Check decoded size (max 8MB for image)
+        if len(decoded) > 8 * 1024 * 1024:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Image size too large. Maximum 8MB allowed."
+            )
+        
+        # Update request with cleaned data
+        request.image_data = image_data
+        
+    except Exception as decode_error:
+        logger.error(f"Invalid base64 image data: {str(decode_error)}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid base64 encoding in image data"
         )
 
     try:

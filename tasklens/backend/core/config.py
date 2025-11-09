@@ -24,8 +24,18 @@ class Settings(BaseSettings):
     max_retries: int = 3
 
     # CORS Configuration
-    # Allow all origins for demo/hackathon - restrict in production!
-    cors_origins: list = ["*"]
+    # Specific origins for local development and production
+    cors_origins: list = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:8080",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8080",
+        "http://192.168.1.96:8000",  # Local network for mobile testing
+        "https://tasklens.netlify.app",  # Production frontend
+        "https://tasklensutd.netlify.app"  # Production frontend alternate
+    ]
 
     # App Configuration
     app_name: str = "TaskLens Aggregator Backend"
