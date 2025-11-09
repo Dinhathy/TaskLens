@@ -110,7 +110,8 @@ WIRING_PLAN_SCHEMA = {
                     "feedback_text": {"type": "string", "description": "Detailed instruction for the correct choice."},
                     "error_text": {"type": "string", "description": "Expert reasoning on why the unsafe pin is wrong."}
                 },
-                "required": ["step_id", "safe_pin", "unsafe_pin_option", "x_coord", "y_coord", "feedback_text", "error_text"]
+                "required": ["step_id", "safe_pin", "unsafe_pin_option", "x_coord", "y_coord", "feedback_text", "error_text"],
+                "additionalProperties": False
             },
             "minItems": 5,
             "maxItems": 5
@@ -151,7 +152,8 @@ PLAN_SCHEMA = {
                     },
                     "estimated_time_seconds": {"type": "integer", "minimum": 1}
                 },
-                "required": ["step_number", "action", "component", "safety_level", "estimated_time_seconds"]
+                "required": ["step_number", "action", "component", "safety_level", "estimated_time_seconds"],
+                "additionalProperties": False
             },
             "minItems": 1
         },
@@ -172,7 +174,8 @@ PLAN_SCHEMA = {
                         "minItems": 1
                     }
                 },
-                "required": ["error_name", "symptoms", "recovery_steps"]
+                "required": ["error_name", "symptoms", "recovery_steps"],
+                "additionalProperties": False
             },
             "minItems": 1,
             "maxItems": 3
@@ -186,5 +189,6 @@ PLAN_SCHEMA = {
         "plan_steps",
         "common_errors",
         "total_estimated_time_seconds"
-    ]
+    ],
+    "additionalProperties": False
 }
