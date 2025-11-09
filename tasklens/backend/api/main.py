@@ -119,10 +119,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Add middleware in correct order (request tracking first, then CORS)
-app.add_middleware(RequestMiddleware)
-
-# Configure CORS middleware
+# Configure CORS middleware FIRST (middleware is applied in reverse order)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
@@ -131,6 +128,9 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*", "X-Request-ID"]
 )
+
+# Add request middleware AFTER CORS (will be executed before CORS due to reverse order)
+app.add_middleware(RequestMiddleware)
 
 # Initialize service
 openai_service = OpenAIService()
