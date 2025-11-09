@@ -16,8 +16,8 @@ class Settings(BaseSettings):
 
     # NVIDIA API Configuration
     nvidia_api_key: str = ""
-    nano2_vlm_url: str = "https://ai.api.nvidia.com/v1/vlm/nvidia/nemotron-nano-2-vlm"
-    nano3_llm_url: str = "https://ai.api.nvidia.com/v1/chat/completions"
+    nano2_vlm_url: str = "https://integrate.api.nvidia.com/v1/chat/completions"
+    nano3_llm_url: str = "https://integrate.api.nvidia.com/v1/chat/completions"
 
     def model_post_init(self, __context):
         """Sanitize URLs to remove any trailing whitespace/newlines from environment variables."""

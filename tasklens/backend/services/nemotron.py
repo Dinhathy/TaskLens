@@ -144,7 +144,7 @@ class NemotronService:
         ])
 
         payload = {
-            "model": "nvidia/nemotron-nano-2-vlm",
+            "model": "nvidia/nemotron-nano-12b-v2-vl",
             "messages": [
                 {
                     "role": "user",

@@ -11,9 +11,9 @@ services:
       - key: NVIDIA_API_KEY
         sync: false
       - key: NANO2_VLM_URL
-        value: https://ai.api.nvidia.com/v1/vlm/nvidia/nemotron-nano-2-vlm
+        value: https://integrate.api.nvidia.com/v1/chat/completions
       - key: NANO3_LLM_URL
-        value: https://ai.api.nvidia.com/v1/chat/completions
+        value: https://integrate.api.nvidia.com/v1/chat/completions
       - key: API_TIMEOUT
         value: 60
       - key: MAX_RETRIES
