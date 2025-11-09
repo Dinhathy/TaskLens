@@ -121,6 +121,10 @@ class NemotronService:
                 elif 'png' in image_base64.lower():
                     image_format = "png"
                 image_base64 = image_base64.split(',')[1]
+
+            # CRITICAL: Strip any remaining newlines/whitespace that may have been added by proxy
+            image_base64 = image_base64.replace('\n', '').replace('\r', '').replace(' ', '').replace('\t', '')
+
             # Test decode to validate format
             base64.b64decode(image_base64)
         except Exception as e:
